@@ -286,6 +286,8 @@ var form2js = (function()
 			case 'TEXTAREA':
 				switch (fieldNode.type.toLowerCase()) {
 					case 'radio':
+						if (fieldNode.checked) return fieldNode.value;
+						break;
 					case 'checkbox':
                         if (fieldNode.checked && fieldNode.value === 'true' || fieldNode.value === 'on') return true;
                         if (!fieldNode.checked && fieldNode.value === 'true' || fieldNode.value === 'on') return false;
