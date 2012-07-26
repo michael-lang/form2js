@@ -40,7 +40,6 @@
 		</code></pre>
 
 		<script type="text/javascript" src="json2.js"></script>
-		<script type="text/javascript" src="jquery-1.6.2.min.js"></script>
 		<script type="text/javascript" src="../src/form2js.js"></script>
 		<script type="text/javascript">
 			function processDate(node)
@@ -71,7 +70,7 @@
 
 			function getFormData()
 			{
-				var formData = form2js.form2js({rootNode:'dateTest', delimiter:'.', skipEmpty:true, nodeCallback:processDate});
+				var formData = form2js({rootNode:'dateTest', delimiter:'.', skipEmpty:true, nodeCallback:processDate});
 				document.getElementById('testArea').innerHTML = JSON.stringify(formData, null, '\t');
 			}
 		</script>

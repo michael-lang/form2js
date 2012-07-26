@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2010 Maxim Vasiliev
+ * Copyright 2012, AUTHORS.txt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -19,9 +20,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * @author Maxim Vasiliev
- * Date: 09.09.2010
- * Time: 19:02:33
  */
 
 
@@ -33,6 +31,7 @@ form2js = function()
 	 * "name" attribute defines structure of resulting object
 	 *
 	 * @param rootNode {Element|String} root form element (or it's id) or array of root elements
+	 * @param json {Object} - the data element to update with the form values (empty to start with a new object)
 	 * @param delimiter {String} structure parts delimiter defaults to '.'
 	 * @param skipEmpty {Boolean} should skip empty text values, defaults to true
 	 * @param emptyToNull {Boolean} should empty values be converted to null?
@@ -45,6 +44,7 @@ form2js = function()
 		if (typeof prms.emptyToNull == 'undefined' || prms.emptyToNull == null) prms.emptyToNull = true;
 		if (typeof prms.delimiter == 'undefined' || prms.delimiter == null) prms.delimiter = '.';
 		if (arguments.length < 6) prms.useIdIfEmptyName = false;
+		if (!prms.json) { prms.json = new Object(); }
 
 		prms.rootNode = typeof prms.rootNode == 'string' ? document.getElementById(prms.rootNode) : prms.rootNode;
 
@@ -57,19 +57,27 @@ form2js = function()
 		{
 			while(currNode = prms.rootNode[i++])
 			{
-				formValues = formValues.concat(getFormValues($.extend({}, prms, {rootNode: currNode})));
+				formValues = formValues.concat(getFormValues(extend({}, prms, {rootNode: currNode})));
 			}
 		}
 		else
 		{
 			formValues = getFormValues(prms);
 		}
-		$.extend(prms, { nameValues: formValues });
+		extend(prms, { nameValues: formValues });
 
 		return processNameValues(prms);
 	};
+	function extend(){
+		for(var i=1; i<arguments.length; i++)
+			for(var key in arguments[i])
+				if(arguments[i].hasOwnProperty(key))
+					arguments[0][key] = arguments[i][key];
+		return arguments[0];
+	};
 	/**
 	 * Processes collection of { name: 'name', value: 'value' } objects.
+	 * @param json - the data element to update with the form values (empty to start with a new object)
 	 * @param nameValues
 	 * @param skipEmpty if true skips elements with value == '' or value == null
 	 * @param delimiter
@@ -77,8 +85,7 @@ form2js = function()
 	 */
 	function processNameValues(prms)
 	{
-		var result = {},
-			arrays = {},
+		var arrays = {},
 			i, j, k, l,
 			value,
 			nameParts,
@@ -102,7 +109,7 @@ form2js = function()
 
 			_nameParts = name.split(prms.delimiter);
 			nameParts = [];
-			currResult = result;
+			currResult = prms.json;
 			arrNameFull = '';
 
 			for(j = 0; j < _nameParts.length; j++)
@@ -215,7 +222,7 @@ form2js = function()
 			}
 		}
 
-		return result;
+		return prms.json;
 	};
 	/**
 	 * 
@@ -225,7 +232,7 @@ form2js = function()
 	 */
     function getFormValues(prms)
     {
-        var result = extractNodeValues($.extend({}, prms, {node:prms.rootNode}));
+        var result = extractNodeValues(extend({}, prms, {node:prms.rootNode}));
         return result.length > 0 ? result : getSubFormValues(prms);
     };
 	/**
@@ -241,7 +248,7 @@ form2js = function()
 		
 		while (currentNode)
 		{
-			var currentResult = extractNodeValues($.extend({}, prms, {node:currentNode}));
+			var currentResult = extractNodeValues(extend({}, prms, {node:currentNode}));
             		for (var i = 0; i < currentResult.length;i++ ) {
                 		if(currentResult[i].value !== null) {
                     			result[result.length] = currentResult[i];                    
@@ -278,7 +285,7 @@ form2js = function()
 	        result = [ { name: fieldName.replace(/\[\]$/, ''), value: fieldValue } ];
         }
         else {
-            result = getSubFormValues($.extend({}, prms, {rootNode:prms.node}));
+            result = getSubFormValues(extend({}, prms, {rootNode:prms.node}));
         }
 
         return result;
@@ -354,14 +361,5 @@ form2js = function()
 		return result;
 	};
 
-	return {
-		form2js: form2js,
-		processNameValues: processNameValues,
-		getFormValues: getFormValues,
-		getSubFormValues: getSubFormValues,
-		extractNodeValues: extractNodeValues,
-		getFieldName: getFieldName,
-		getFieldValue: getFieldValue,
-		getSelectedOptionValue: getSelectedOptionValue
-	};
-} (jQuery);
+	return form2js;
+}();

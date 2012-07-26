@@ -1,0 +1,9 @@
+﻿Authors ordered by first contribution
+
+Maxim Vasiliev (Github:maxatwork;2011-06-15)
+James Scott (Github:?;2011-09-19)
+John Stevens (Github:lookfirst;2011-10-15)
+Mike McKay (Github:mikeymckay;2011-12-15)
+Ryan Maxwell (Github:?;2012-01-30)
+Harry McIntyre (Github:mcintyre321;2012-05-16)
+Michael Lang (Gitub:michael-lang;2012-07-25)
