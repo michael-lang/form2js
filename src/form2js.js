@@ -25,10 +25,9 @@
  */
 
 
-var form2js = (function()
+form2js = function()
 {
 	"use strict";
-
 	/**
 	 * Returns form values represented as Javascript object
 	 * "name" attribute defines structure of resulting object
@@ -40,42 +39,43 @@ var form2js = (function()
 	 * @param nodeCallback {Function} custom function to get node value
 	 * @param useIdIfEmptyName {Boolean} if true value of id attribute of field will be used if name of field is empty
 	 */
-	function form2js(rootNode, delimiter, skipEmpty, emptyToNull, nodeCallback, useIdIfEmptyName)
+	function form2js(prms)
 	{
-		if (typeof skipEmpty == 'undefined' || skipEmpty == null) skipEmpty = true;
-		if (typeof emptyToNull == 'undefined' || emptyToNull == null) emptyToNull = true;
-		if (typeof delimiter == 'undefined' || delimiter == null) delimiter = '.';
-		if (arguments.length < 6) useIdIfEmptyName = false;
+		if (typeof prms.skipEmpty == 'undefined' || prms.skipEmpty == null) prms.skipEmpty = true;
+		if (typeof prms.emptyToNull == 'undefined' || prms.emptyToNull == null) prms.emptyToNull = true;
+		if (typeof prms.delimiter == 'undefined' || prms.delimiter == null) prms.delimiter = '.';
+		if (arguments.length < 6) prms.useIdIfEmptyName = false;
 
-		rootNode = typeof rootNode == 'string' ? document.getElementById(rootNode) : rootNode;
+		prms.rootNode = typeof prms.rootNode == 'string' ? document.getElementById(prms.rootNode) : prms.rootNode;
 
 		var formValues = [],
 			currNode,
 			i = 0;
 
-		/* If rootNode is array - combine values */
-		if (rootNode.constructor == Array || (typeof NodeList != 'undefined' && rootNode.constructor == NodeList))
+		/* If prms.rootNode is array - combine values */
+		if (prms.rootNode.constructor == Array || (typeof NodeList != 'undefined' && prms.rootNode.constructor == NodeList))
 		{
-			while(currNode = rootNode[i++])
+			while(currNode = prms.rootNode[i++])
 			{
-				formValues = formValues.concat(getFormValues(currNode, nodeCallback, useIdIfEmptyName));
+				formValues = formValues.concat(getFormValues($.extend({}, prms, {rootNode: currNode})));
 			}
 		}
 		else
 		{
-			formValues = getFormValues(rootNode, nodeCallback, useIdIfEmptyName);
+			formValues = getFormValues(prms);
 		}
+		$.extend(prms, { nameValues: formValues });
 
-		return processNameValues(formValues, skipEmpty, emptyToNull, delimiter);
-	}
-
+		return processNameValues(prms);
+	};
 	/**
 	 * Processes collection of { name: 'name', value: 'value' } objects.
 	 * @param nameValues
 	 * @param skipEmpty if true skips elements with value == '' or value == null
 	 * @param delimiter
+	 * @param emptyToNull
 	 */
-	function processNameValues(nameValues, skipEmpty, emptyToNull, delimiter)
+	function processNameValues(prms)
 	{
 		var result = {},
 			arrays = {},
@@ -90,17 +90,17 @@ var form2js = (function()
 			name,
 			_nameParts;
 
-		for (i = 0; i < nameValues.length; i++)
+		for (i = 0; i < prms.nameValues.length; i++)
 		{
-			value = nameValues[i].value;
+			value = prms.nameValues[i].value;
 
-			if (emptyToNull && (value === '')) { value = null; }
-			if (skipEmpty && (value === '' || value === null)) continue;
+			if (prms.emptyToNull && (value === '')) { value = null; }
+			if (prms.skipEmpty && (value === '' || value === null)) continue;
 
-			name = nameValues[i].name;
+			name = prms.nameValues[i].name;
 			if (typeof name === 'undefined') continue;
 
-			_nameParts = name.split(delimiter);
+			_nameParts = name.split(prms.delimiter);
 			nameParts = [];
 			currResult = result;
 			arrNameFull = '';
@@ -216,22 +216,32 @@ var form2js = (function()
 		}
 
 		return result;
-	}
-
-    function getFormValues(rootNode, nodeCallback, useIdIfEmptyName)
+	};
+	/**
+	 * 
+	 * @param rootNode
+	 * @param nodeCallback
+	 * @param useIdIfEmptyName
+	 */
+    function getFormValues(prms)
     {
-        var result = extractNodeValues(rootNode, nodeCallback, useIdIfEmptyName);
-        return result.length > 0 ? result : getSubFormValues(rootNode, nodeCallback, useIdIfEmptyName);
-    }
-
-    function getSubFormValues(rootNode, nodeCallback, useIdIfEmptyName)
+        var result = extractNodeValues($.extend({}, prms, {node:prms.rootNode}));
+        return result.length > 0 ? result : getSubFormValues(prms);
+    };
+	/**
+	 * 
+	 * @param rootNode
+	 * @param nodeCallback
+	 * @param useIdIfEmptyName
+	 */
+    function getSubFormValues(prms)
 	{
 		var result = [],
-			currentNode = rootNode.firstChild;
+			currentNode = prms.rootNode.firstChild;
 		
 		while (currentNode)
 		{
-			var currentResult = extractNodeValues(currentNode, nodeCallback, useIdIfEmptyName);
+			var currentResult = extractNodeValues($.extend({}, prms, {node:currentNode}));
             		for (var i = 0; i < currentResult.length;i++ ) {
                 		if(currentResult[i].value !== null) {
                     			result[result.length] = currentResult[i];                    
@@ -241,40 +251,49 @@ var form2js = (function()
 		}
 
 		return result;
-	}
+	};
+	/**
+	 * 
+	 * @param node
+	 * @param nodeCallback
+	 * @param useIdIfEmptyName
+	 */
+    function extractNodeValues(prms) {
+        var callbackResult, fieldValue, result, fieldName = getFieldName(prms);
 
-    function extractNodeValues(node, nodeCallback, useIdIfEmptyName) {
-        var callbackResult, fieldValue, result, fieldName = getFieldName(node, useIdIfEmptyName);
-
-        callbackResult = nodeCallback && nodeCallback(node);
+        callbackResult = prms.nodeCallback && prms.nodeCallback(prms.node);
 
         if (callbackResult && callbackResult.name) {
             result = [callbackResult];
         }
-        else if (fieldName != '' && node.nodeName.match(/INPUT|TEXTAREA/i)) {
-            fieldValue = getFieldValue(node);   
-	        if (fieldValue == null && node.type == 'radio')
+        else if (fieldName != '' && prms.node.nodeName.match(/INPUT|TEXTAREA/i)) {
+            fieldValue = getFieldValue(prms.node);   
+	        if (fieldValue == null && prms.node.type == 'radio')
                 result = [];
             else
                 result = [ { name: fieldName, value: fieldValue} ];
         }
-        else if (fieldName != '' && node.nodeName.match(/SELECT/i)) {
-	        fieldValue = getFieldValue(node);
+        else if (fieldName != '' && prms.node.nodeName.match(/SELECT/i)) {
+	        fieldValue = getFieldValue(prms.node);
 	        result = [ { name: fieldName.replace(/\[\]$/, ''), value: fieldValue } ];
         }
         else {
-            result = getSubFormValues(node, nodeCallback, useIdIfEmptyName);
+            result = getSubFormValues($.extend({}, prms, {rootNode:prms.node}));
         }
 
         return result;
-    }
-
-	function getFieldName(node, useIdIfEmptyName)
+    };
+	/**
+	 * 
+	 * @param node
+	 * @param useIdIfEmptyName
+	 */
+	function getFieldName(prms)
 	{
-		if (node.name && node.name != '') return node.name;
-		else if (useIdIfEmptyName && node.id && node.id != '') return node.id;
+		if (prms.node.name && prms.node.name != '') return prms.node.name;
+		else if (prms.useIdIfEmptyName && prms.node.id && prms.node.id != '') return prms.node.id;
 		else return '';
-	}
+	};
 
 
 	function getFieldValue(fieldNode)
@@ -316,7 +335,7 @@ var form2js = (function()
 		}
 
 		return null;
-	}
+	};
 
 	function getSelectedOptionValue(selectNode)
 	{
@@ -333,8 +352,16 @@ var form2js = (function()
 		}
 
 		return result;
-	}
+	};
 
-	return form2js;
-
-})();
+	return {
+		form2js: form2js,
+		processNameValues: processNameValues,
+		getFormValues: getFormValues,
+		getSubFormValues: getSubFormValues,
+		extractNodeValues: extractNodeValues,
+		getFieldName: getFieldName,
+		getFieldValue: getFieldValue,
+		getSelectedOptionValue: getSelectedOptionValue
+	};
+} (jQuery);
